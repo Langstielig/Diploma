@@ -6,6 +6,7 @@ MonoImporter:
   defaultReferences:
   - ground1: {fileID: 6958221961168839512, guid: 27897ae1a66bf7e4186a2a2f7242c1bb, type: 3}
   - wall1: {fileID: 2950755341971830466, guid: cbca6111643367047b795d0efef32e58, type: 3}
+  - border: {fileID: 3914188912023384181, guid: ad3371038c775bc43a6b1a881ee834f7, type: 3}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 

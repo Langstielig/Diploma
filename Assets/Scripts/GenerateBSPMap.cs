@@ -13,7 +13,7 @@ public class GenerateBSPMap : MonoBehaviour
     public GameObject border;
 
     private int countOfRooms = 1;
-    private int test = 0;
+    //private int test = 0;
 
     void Start()
     {
@@ -26,10 +26,13 @@ public class GenerateBSPMap : MonoBehaviour
         // Room room2 = new Room(10, 10, 5, 5, ref countOfRooms);
         // room2.RoomDrawing(ground1, wall1);
 
+        GameObject emptyRooms = new GameObject("Rooms");
+        GameObject emptyLeafs = new GameObject("Leafs");
+
         Leaf leaf = new Leaf(0, 0, 50, 50);
-        leaf.LeafDrawing(border, ref test);
+        //leaf.LeafDrawing(border, ref test, ref emptyLeafs);
         leaf.Split();
-        leaf.GenerateRooms(ground1, wall1, border, ref countOfRooms);
+        leaf.GenerateRooms(ground1, wall1, border, ref countOfRooms, ref emptyRooms, ref emptyLeafs);
     }
 
     void Update()
@@ -39,6 +42,9 @@ public class GenerateBSPMap : MonoBehaviour
 
     public static bool RandomBoolean()
     {
+        ///<summary>
+        ///returns random boolean value
+        ///</summary>
         if(Random.value > 0.5)
         {
             return true;
@@ -69,6 +75,9 @@ public class GenerateBSPMap : MonoBehaviour
         public Room room;
         public Hall hall;
 
+        /// <summary>
+        /// constructor without parameters
+        /// </summary>
         public Leaf()
         {
             x0 = 0;
@@ -84,18 +93,28 @@ public class GenerateBSPMap : MonoBehaviour
             hall = null;
         }
 
-        public Leaf(int _x, int _z, int w, int l)
+        /// <summary>
+        /// constructor with parameters
+        /// </summary>
+        /// <param name="_x">x coordinate</param>
+        /// <param name="_z">z coordinate</param>
+        /// <param name="l">length (size on x coordinate)</param>
+        /// <param name="w">width (size on z coordinate)</param>
+        public Leaf(int _x, int _z, int l, int w)
         {
             x0 = _x;
             z0 = _z;
 
-            width = w;
             length = l;
+            width = w;
 
             leftChild = null;
             rightChild = null;
         }
 
+        /// <summary>
+        /// function for splitting the space
+        /// </summary>
         public void Split()
         {
             Debug.Log("Split leaf: " + x0.ToString() + ", " + z0.ToString() + ", " + width.ToString() + ", " + length.ToString());
@@ -115,7 +134,7 @@ public class GenerateBSPMap : MonoBehaviour
                 }
                 else
                 {
-                    horizontalSplitting = GenerateBSPMap.RandomBoolean();
+                    horizontalSplitting = RandomBoolean();
                     Debug.Log("random");
                 }
                 Debug.Log("HorizontalSplitting: " + horizontalSplitting);
@@ -136,17 +155,19 @@ public class GenerateBSPMap : MonoBehaviour
                     Debug.Log("SplitPlace: " + splitPlace);
                     if(horizontalSplitting)
                     {
-                        leftChild = new Leaf(x0, z0, splitPlace, length);
-                        Debug.Log("leftChild: " + x0.ToString() + ", " + z0.ToString() + ", " + splitPlace.ToString() + ", " + length.ToString());
-                        rightChild = new Leaf(x0, z0 + splitPlace, width - splitPlace, length);
-                        Debug.Log("rightChild: " + (x0 + splitPlace).ToString() + ", " + z0.ToString() + ", " + (width - splitPlace).ToString() + ", " + length.ToString());
+                        leftChild = new Leaf(x0, z0, length, splitPlace);
+                        Debug.Log("leftChild: " + x0.ToString() + ", " + z0.ToString() + ", " + length.ToString() + ", " + splitPlace.ToString());
+                        rightChild = new Leaf(x0, z0 + splitPlace, length, width - splitPlace);
+                        Debug.Log("rightChild: " + x0.ToString() + ", " + (z0 + splitPlace).ToString() + ", " + length.ToString() + ", " + (width - splitPlace).ToString());
                     }
                     else
                     {
-                        leftChild = new Leaf(x0, z0, width, splitPlace);
-                        Debug.Log("leftChild: " + x0.ToString() + ", " + z0.ToString() + ", " + width.ToString() + ", " + splitPlace.ToString());
-                        rightChild = new Leaf(x0 + splitPlace, z0, width, length - splitPlace);
-                        Debug.Log("rightChild: " + x0.ToString() + ", " + (z0 + splitPlace).ToString() + ", " + width.ToString() + ", " + (length - splitPlace).ToString());
+                        leftChild = new Leaf(x0, z0, splitPlace, width);
+                        //leftChild.LeafDrawing(border, ref leafNumber, ref emptyLeafs);
+                        Debug.Log("leftChild: " + x0.ToString() + ", " + z0.ToString() + ", " + splitPlace.ToString() + ", " + width.ToString());
+                        rightChild = new Leaf(x0 + splitPlace, z0, length - splitPlace, width);
+                        //rightChild.LeafDrawing(border, ref leafNumber,)
+                        Debug.Log("rightChild: " + (x0 + splitPlace).ToString() + ", " + z0.ToString() + ", " + (length - splitPlace).ToString() + ", " + width.ToString());
                     }
                 }
                 else
@@ -168,22 +189,32 @@ public class GenerateBSPMap : MonoBehaviour
             }
         }
 
-        public void GenerateRooms(GameObject floor, GameObject wall, GameObject border, ref int roomNumber)
+        /// <summary>
+        /// function for generating rooms in splitted space
+        /// </summary>
+        /// <param name="floor">floor prefab</param>
+        /// <param name="wall">wall prefab</param>
+        /// <param name="border">border prefab</param>
+        /// <param name="roomNumber">parameter for counting generated rooms</param>
+        /// <param name="emptyRooms">main empty GameObject for hierarchy for storing all generated rooms</param>
+        /// <param name="emptyLeafs">main empty GameObject for hierarchy for storing all generated leafs (parts of all space)</param>
+        public void GenerateRooms(GameObject floor, GameObject wall, GameObject border, ref int roomNumber,
+                                  ref GameObject emptyRooms, ref GameObject emptyLeafs)
         {
             if(leftChild != null || rightChild != null)
             {
                 if(leftChild != null)
                 {
-                    leftChild.GenerateRooms(floor, wall, border, ref roomNumber);
+                    leftChild.GenerateRooms(floor, wall, border, ref roomNumber, ref emptyRooms, ref emptyLeafs);
                 }
                 if(rightChild != null)
                 {
-                    rightChild.GenerateRooms(floor, wall, border, ref roomNumber);
+                    rightChild.GenerateRooms(floor, wall, border, ref roomNumber, ref emptyRooms, ref emptyLeafs);
                 }
             }
             else
             {
-                LeafDrawing(border, ref roomNumber);
+                LeafDrawing(border, ref roomNumber, ref emptyLeafs);
 
                 Debug.Log("create room for leaf: " + x0.ToString() + ", " + z0.ToString() + ", " + width.ToString() + ", " + length.ToString());
                 int roomWidth = Random.Range(4, width - 2);
@@ -191,17 +222,25 @@ public class GenerateBSPMap : MonoBehaviour
                 int roomPosX = Random.Range(1, length - roomLength - 1) + x0;
                 int roomPosZ = Random.Range(1, width - roomWidth - 1) + z0;
 
-                room = new Room(roomPosX, roomPosZ, roomWidth, roomLength, roomNumber);
+                room = new Room(roomPosX, roomPosZ, roomLength, roomWidth, roomNumber, ref emptyRooms);
                 Debug.Log("roon number: " + roomNumber);
                 roomNumber++;
-                Debug.Log("generated room: " + roomPosX.ToString() + ", " + roomPosZ.ToString() + ", " + roomWidth.ToString() + ", " + roomLength.ToString());
+                Debug.Log("generated room: " + roomPosX.ToString() + ", " + roomPosZ.ToString() + ", " + roomLength.ToString() + ", " + roomWidth.ToString());
                 room.RoomDrawing(floor, wall);
             }
         }
 
-        public void LeafDrawing(GameObject border, ref int leafNumber)
+        /// <summary>
+        /// function for drawing borders of created leaf
+        /// </summary>
+        /// <param name="border">border prefab</param>
+        /// <param name="leafNumber">parameter for counting leafs</param>
+        /// <param name="emptyLeafs">main empty GameObject for hierarchy for storing all generated leafs (parts of all space</param>
+        public void LeafDrawing(GameObject border, ref int leafNumber, ref GameObject emptyLeafs)
         {
             GameObject currentLeaf = new GameObject("Leaf" + leafNumber.ToString());
+            currentLeaf.transform.SetParent(emptyLeafs.transform);
+
             int xPosition = x0;
             int yPosition = -2;
             int zPosition = z0;
@@ -246,6 +285,9 @@ public class GenerateBSPMap : MonoBehaviour
 
         public int roomNumber;
 
+        /// <summary>
+        /// constructor without parameters
+        /// </summary>
         public Room()
         {
             x0 = 0;
@@ -259,26 +301,45 @@ public class GenerateBSPMap : MonoBehaviour
             emptyRoom = new GameObject("Room" + roomNumber.ToString());
         }
 
-        public Room(int _x, int _z, int w, int l, int num) 
+        /// <summary>
+        /// constructor with parameters
+        /// </summary>
+        /// <param name="_x">x coordinate</param>
+        /// <param name="_z">z coordinate</param>
+        /// <param name="l">length (size on x coordinate)</param>
+        /// <param name="w">width (size on z coordinate)</param>
+        /// <param name="num">number of room</param>
+        /// <param name="emptyRooms">main empty GameObject for hierarchy for storing all generated rooms</param>
+        public Room(int _x, int _z, int l, int w, int num, ref GameObject emptyRooms) 
         {
             x0 = _x;
             z0 = _z;
 
-            width = w;
             length = l;
+            width = w;
 
             roomNumber = num;
             num++;
 
             emptyRoom = new GameObject("Room" + roomNumber.ToString());
+            emptyRoom.transform.SetParent(emptyRooms.transform);
         }
 
+        /// <summary>
+        /// function for drawing room
+        /// </summary>
+        /// <param name="floor">floor prefab</param>
+        /// <param name="wall">wall prefab</param>
         public void RoomDrawing(GameObject floor, GameObject wall)
         {
             FloorDrawing(floor);
             WallDrawing(wall);
         }
 
+        /// <summary>
+        /// function for drawing room floor
+        /// </summary>
+        /// <param name="floor">floor prefab</param>
         public void FloorDrawing(GameObject floor)
         {
             int xPosition = x0;
@@ -307,6 +368,10 @@ public class GenerateBSPMap : MonoBehaviour
             }
         }
 
+        /// <summary>
+        /// function for drawing room walls
+        /// </summary>
+        /// <param name="wall">wall prefab</param>
         public void WallDrawing(GameObject wall)
         {
             int xPosition = x0;
@@ -369,6 +434,9 @@ public class GenerateBSPMap : MonoBehaviour
         public bool xDirection;
         public bool zDirection;
 
+        /// <summary>
+        /// constructor without parameters
+        /// </summary>
         public Hall()
         {
             x0 = 0;
@@ -380,15 +448,23 @@ public class GenerateBSPMap : MonoBehaviour
             zDirection = true;
         }
 
-        public Hall(int _x, int _z, int l, bool hd, bool vd)
+        /// <summary>
+        /// constructor with parameters
+        /// </summary>
+        /// <param name="_x">x coordinate</param>
+        /// <param name="_z">z coordinate</param>
+        /// <param name="l">size of hall</param>
+        /// <param name="hd">bool parameter, showing </param>
+        /// <param name="vd"></param>
+        public Hall(int _x, int _z, int l, bool xd, bool zd)
         {
             x0 = _x;
             z0 = _z;
 
             length = l;
 
-            xDirection = hd;
-            zDirection = vd;
+            xDirection = xd; //тут хуйня какая-то
+            zDirection = zd;
         }
 
         public void HallDrawing(GameObject floor, GameObject wall)
