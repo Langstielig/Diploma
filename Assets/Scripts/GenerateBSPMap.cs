@@ -17,6 +17,10 @@ public class GenerateBSPMap : MonoBehaviour
 
     void Start()
     {
+        GameObject emptyRooms = new GameObject("Rooms");
+        GameObject emptyHalls = new GameObject("Halls");
+        GameObject emptyLeafs = new GameObject("Leafs");
+
         // Hall hall = new Hall(0, 0, 8, false, true);
         // hall.HallDrawing(ground1, wall1);
 
@@ -26,13 +30,25 @@ public class GenerateBSPMap : MonoBehaviour
         // Room room2 = new Room(10, 10, 5, 5, ref countOfRooms);
         // room2.RoomDrawing(ground1, wall1);
 
-        GameObject emptyRooms = new GameObject("Rooms");
-        GameObject emptyLeafs = new GameObject("Leafs");
+        //Hall hall1 = new Hall(11, 2, 8, true, 1, 2, ref emptyHalls);
+        //hall.HallDrawing(ground1, wall1);
 
-        Leaf leaf = new Leaf(0, 0, 50, 50);
-        //leaf.LeafDrawing(border, ref test, ref emptyLeafs);
+        //Hall hall2 = new Hall(3, 8, 8, false, 1, 2, ref emptyHalls);
+
+        //Room room = new Room(0, 0, 11, 8, 1, ref emptyRooms, hall1, hall2);
+        //room.RoomDrawing(ground1, wall1);
+
+        Leaf leaf = new Leaf(0, 0, 10, 21);
         leaf.Split();
-        leaf.GenerateRooms(ground1, wall1, border, ref countOfRooms, ref emptyRooms, ref emptyLeafs);
+        leaf.GenerateRooms(border, ref countOfRooms, ref emptyRooms, ref emptyHalls, ref emptyLeafs);
+        leaf.GenerateHalls(ref emptyHalls);
+        leaf.DrawMap(ground1, wall1);
+
+        //Leaf leaf = new Leaf(0, 0, 50, 50);
+        ////leaf.LeafDrawing(border, ref test, ref emptyLeafs);
+        //leaf.Split();
+        //leaf.GenerateRooms(ground1, wall1, border, ref countOfRooms, ref emptyRooms, ref emptyHalls, ref emptyLeafs);
+
     }
 
     void Update()
@@ -61,7 +77,7 @@ public class GenerateBSPMap : MonoBehaviour
 
     class Leaf
     {
-        private const int minLeafSize = 6;
+        private const int minLeafSize = 10;
 
         public int x0;
         public int z0;
@@ -72,8 +88,10 @@ public class GenerateBSPMap : MonoBehaviour
         public Leaf leftChild;
         public Leaf rightChild;
 
+        public bool isHorizontalSplitting;
+        public bool isSplitted;
+
         public Room room;
-        public Hall hall;
 
         /// <summary>
         /// constructor without parameters
@@ -89,15 +107,17 @@ public class GenerateBSPMap : MonoBehaviour
             leftChild = null;
             rightChild = null;
 
+            isHorizontalSplitting = true;
+            isSplitted = false;
+
             room = null;
-            hall = null;
         }
 
         /// <summary>
         /// constructor with parameters
         /// </summary>
-        /// <param name="_x">x coordinate</param>
-        /// <param name="_z">z coordinate</param>
+        /// <param name="_x">x coordinate of lower left corner</param>
+        /// <param name="_z">z coordinate of lower left corner</param>
         /// <param name="l">length (size on x coordinate)</param>
         /// <param name="w">width (size on z coordinate)</param>
         public Leaf(int _x, int _z, int l, int w)
@@ -110,6 +130,11 @@ public class GenerateBSPMap : MonoBehaviour
 
             leftChild = null;
             rightChild = null;
+
+            isHorizontalSplitting = true;
+            isSplitted = false;
+
+            room = null;
         }
 
         /// <summary>
@@ -155,6 +180,8 @@ public class GenerateBSPMap : MonoBehaviour
                     Debug.Log("SplitPlace: " + splitPlace);
                     if(horizontalSplitting)
                     {
+                        isHorizontalSplitting = true;
+                        isSplitted = true;
                         leftChild = new Leaf(x0, z0, length, splitPlace);
                         Debug.Log("leftChild: " + x0.ToString() + ", " + z0.ToString() + ", " + length.ToString() + ", " + splitPlace.ToString());
                         rightChild = new Leaf(x0, z0 + splitPlace, length, width - splitPlace);
@@ -162,11 +189,11 @@ public class GenerateBSPMap : MonoBehaviour
                     }
                     else
                     {
+                        isHorizontalSplitting = false;
+                        isSplitted = true;
                         leftChild = new Leaf(x0, z0, splitPlace, width);
-                        //leftChild.LeafDrawing(border, ref leafNumber, ref emptyLeafs);
                         Debug.Log("leftChild: " + x0.ToString() + ", " + z0.ToString() + ", " + splitPlace.ToString() + ", " + width.ToString());
                         rightChild = new Leaf(x0 + splitPlace, z0, length - splitPlace, width);
-                        //rightChild.LeafDrawing(border, ref leafNumber,)
                         Debug.Log("rightChild: " + (x0 + splitPlace).ToString() + ", " + z0.ToString() + ", " + (length - splitPlace).ToString() + ", " + width.ToString());
                     }
                 }
@@ -197,19 +224,20 @@ public class GenerateBSPMap : MonoBehaviour
         /// <param name="border">border prefab</param>
         /// <param name="roomNumber">parameter for counting generated rooms</param>
         /// <param name="emptyRooms">main empty GameObject for hierarchy for storing all generated rooms</param>
+        /// <param name="emptyHalls">main empty GameObject for hierarchy for storing all generated halls</param>
         /// <param name="emptyLeafs">main empty GameObject for hierarchy for storing all generated leafs (parts of all space)</param>
-        public void GenerateRooms(GameObject floor, GameObject wall, GameObject border, ref int roomNumber,
-                                  ref GameObject emptyRooms, ref GameObject emptyLeafs)
+        public void GenerateRooms(GameObject border, ref int roomNumber,
+                                  ref GameObject emptyRooms, ref GameObject emptyHalls, ref GameObject emptyLeafs) //тут нужно будет убрать лишние параметры, потому что здесь не нужно будет рисовать
         {
             if(leftChild != null || rightChild != null)
             {
                 if(leftChild != null)
                 {
-                    leftChild.GenerateRooms(floor, wall, border, ref roomNumber, ref emptyRooms, ref emptyLeafs);
+                    leftChild.GenerateRooms(border, ref roomNumber, ref emptyRooms, ref emptyHalls, ref emptyLeafs);
                 }
                 if(rightChild != null)
                 {
-                    rightChild.GenerateRooms(floor, wall, border, ref roomNumber, ref emptyRooms, ref emptyLeafs);
+                    rightChild.GenerateRooms(border, ref roomNumber, ref emptyRooms, ref emptyHalls, ref emptyLeafs);
                 }
             }
             else
@@ -223,10 +251,79 @@ public class GenerateBSPMap : MonoBehaviour
                 int roomPosZ = Random.Range(1, width - roomWidth - 1) + z0;
 
                 room = new Room(roomPosX, roomPosZ, roomLength, roomWidth, roomNumber, ref emptyRooms);
-                Debug.Log("roon number: " + roomNumber);
+                Debug.Log("room number: " + roomNumber);
                 roomNumber++;
                 Debug.Log("generated room: " + roomPosX.ToString() + ", " + roomPosZ.ToString() + ", " + roomLength.ToString() + ", " + roomWidth.ToString());
+                //room.RoomDrawing(floor, wall);
+            }
+        }
+
+        public void GenerateHalls(ref GameObject emptyHalls)
+        {
+            if(leftChild != null && leftChild.room != null && rightChild != null && rightChild.room != null)
+            {
+                int min;
+                int max;
+                int xPosition;
+                int zPosition;
+                int lengthOfHall;
+                if (isHorizontalSplitting)
+                {
+                    if (leftChild.room.x0 > rightChild.room.x0)
+                        min = leftChild.room.x0;
+                    else
+                        min = rightChild.room.x0;
+
+                    if ((leftChild.room.x0 + leftChild.room.length) < (rightChild.room.x0 + rightChild.room.length))
+                        max = leftChild.x0 + leftChild.room.length - 1;
+                    else
+                        max = rightChild.room.x0 + rightChild.room.length - 1;
+
+                    xPosition = Random.Range(min, max); //тут скорее всего нужно max + 1
+                    zPosition = leftChild.room.z0 + leftChild.room.width;
+                    lengthOfHall = rightChild.room.z0 - zPosition;
+                }
+                else
+                {
+                    if (leftChild.room.z0 > rightChild.room.z0)
+                        min = leftChild.room.z0;
+                    else
+                        min = rightChild.room.z0;
+
+                    if ((leftChild.room.z0 + leftChild.room.width) < (rightChild.room.z0 + rightChild.room.width))
+                        max = leftChild.room.z0 + leftChild.room.width - 1;
+                    else
+                        max = rightChild.room.z0 + rightChild.room.width - 1;
+
+                    xPosition = leftChild.room.x0 + leftChild.room.length;
+                    zPosition = Random.Range(min, max); // тут тоже max + 1
+                    lengthOfHall = rightChild.room.x0 - xPosition;
+                }
+                Hall newHall = new Hall(xPosition, zPosition, lengthOfHall, false, leftChild.room.roomNumber, rightChild.room.roomNumber, ref emptyHalls);
+                leftChild.room.AddHall(newHall);
+            }
+            else
+            {
+                if (leftChild != null)
+                    leftChild.GenerateHalls(ref emptyHalls);
+                if (rightChild != null)
+                    rightChild.GenerateHalls(ref emptyHalls);
+            }
+        }
+
+        public void DrawMap(GameObject floor, GameObject wall)
+        {
+            if (room != null)
+            {
+                //LeafDrawing(border, ref roomNumber, ref emptyLeafs);
                 room.RoomDrawing(floor, wall);
+            }
+            else
+            {
+                if (leftChild != null)
+                    leftChild.DrawMap(floor, wall);
+                if (rightChild != null)
+                    rightChild.DrawMap(floor, wall);
             }
         }
 
@@ -285,6 +382,9 @@ public class GenerateBSPMap : MonoBehaviour
 
         public int roomNumber;
 
+        Hall horizontalHall;
+        Hall verticalHall;
+
         /// <summary>
         /// constructor without parameters
         /// </summary>
@@ -299,13 +399,16 @@ public class GenerateBSPMap : MonoBehaviour
             roomNumber = 0;
 
             emptyRoom = new GameObject("Room" + roomNumber.ToString());
+
+            horizontalHall = null;
+            verticalHall = null;
         }
 
         /// <summary>
-        /// constructor with parameters
+        /// constructor with parameters without halls
         /// </summary>
-        /// <param name="_x">x coordinate</param>
-        /// <param name="_z">z coordinate</param>
+        /// <param name="_x">x coordinate of lower left corner</param>
+        /// <param name="_z">z coordinate of lower left corner</param>
         /// <param name="l">length (size on x coordinate)</param>
         /// <param name="w">width (size on z coordinate)</param>
         /// <param name="num">number of room</param>
@@ -326,6 +429,79 @@ public class GenerateBSPMap : MonoBehaviour
         }
 
         /// <summary>
+        /// constructor with parameters with one hall
+        /// </summary>
+        /// <param name="_x">x coordinate of lower left corner</param>
+        /// <param name="_z">z coordinate of lower left corner</param>
+        /// <param name="l">length (size on x coordinate)</param>
+        /// <param name="w">width (size on z coordinate)</param>
+        /// <param name="num">number of room</param>
+        /// <param name="emptyRooms">main empty GameObject for hierarchy for storing all generated rooms</param>
+        /// <param name="h">horizontal or vertical hall</param>
+        public Room(int _x, int _z, int l, int w, int num, ref GameObject emptyRooms, Hall h)
+        {
+            x0 = _x;
+            z0 = _z;
+
+            length = l;
+            width = w;
+
+            roomNumber = num;
+            num++;
+
+            emptyRoom = new GameObject("Room" + roomNumber.ToString());
+            emptyRoom.transform.SetParent(emptyRooms.transform);
+
+            if (h.isHorizontal)
+            {
+                horizontalHall = h;
+                verticalHall = null;
+            }
+            else
+            {
+                verticalHall = h;
+                horizontalHall = null;
+            }
+        }
+
+        /// <summary>
+        /// constructor with parameters with both halls
+        /// </summary>
+        /// <param name="_x">x coordinate of lower left corner</param>
+        /// <param name="_z">z coordinate of lower left corner</param>
+        /// <param name="l">length (size on x coordinate)</param>
+        /// <param name="w">width (size on z coordinate)</param>
+        /// <param name="num">number of room</param>
+        /// <param name="emptyRooms">main empty GameObject for hierarchy for storing all generated rooms</param>
+        /// <param name="horizontal">horizontal hall</param>
+        /// <param name="vertical">vertical hall</param>
+        public Room(int _x, int _z, int l, int w, int num, ref GameObject emptyRooms, Hall horizontal, Hall vertical)
+        {
+            x0 = _x;
+            z0 = _z;
+
+            length = l;
+            width = w;
+
+            roomNumber = num;
+            num++;
+
+            emptyRoom = new GameObject("Room" + roomNumber.ToString());
+            emptyRoom.transform.SetParent(emptyRooms.transform);
+
+            horizontalHall = horizontal;
+            verticalHall = vertical;
+        }
+
+        public void AddHall(Hall hall)
+        {
+            if (hall.isHorizontal)
+                horizontalHall = hall;
+            else
+                verticalHall = hall;
+        }
+
+        /// <summary>
         /// function for drawing room
         /// </summary>
         /// <param name="floor">floor prefab</param>
@@ -334,13 +510,19 @@ public class GenerateBSPMap : MonoBehaviour
         {
             FloorDrawing(floor);
             WallDrawing(wall);
+
+            if(horizontalHall != null)
+                horizontalHall.HallDrawing(floor, wall);
+
+            if(verticalHall != null)
+                verticalHall.HallDrawing(floor, wall);
         }
 
         /// <summary>
         /// function for drawing room floor
         /// </summary>
         /// <param name="floor">floor prefab</param>
-        public void FloorDrawing(GameObject floor)
+        private void FloorDrawing(GameObject floor)
         {
             int xPosition = x0;
             int yPosition = -1;
@@ -356,9 +538,10 @@ public class GenerateBSPMap : MonoBehaviour
                     GameObject lowerFloor = Instantiate(floor);
                     lowerFloor.transform.position = (new Vector3(xPosition, yPosition, zPosition));
                     lowerFloor.transform.SetParent(emptyFloor.transform);
-                    GameObject upperFloor = Instantiate(floor);
-                    upperFloor.transform.position = (new Vector3(xPosition, yPosition + height + 1, zPosition));
-                    upperFloor.transform.SetParent(emptyFloor.transform);
+                    //отрисовка потолков
+                    //GameObject upperFloor = Instantiate(floor);
+                    //upperFloor.transform.position = (new Vector3(xPosition, yPosition + height + 1, zPosition));
+                    //upperFloor.transform.SetParent(emptyFloor.transform);
 
                     xPosition++;
                 }
@@ -372,7 +555,7 @@ public class GenerateBSPMap : MonoBehaviour
         /// function for drawing room walls
         /// </summary>
         /// <param name="wall">wall prefab</param>
-        public void WallDrawing(GameObject wall)
+        private void WallDrawing(GameObject wall)
         {
             int xPosition = x0;
             int yPosition = 0;
@@ -385,13 +568,15 @@ public class GenerateBSPMap : MonoBehaviour
             {
                 while(yPosition < height)
                 {
-                    GameObject frontWall = Instantiate(wall);
-                    frontWall.transform.position = (new Vector3(xPosition, yPosition, zPosition));
-                    frontWall.transform.SetParent(emptyWall.transform);
-                    GameObject backWall = Instantiate(wall);
-                    backWall.transform.position = (new Vector3(xPosition, yPosition, zPosition + width - 1));
-                    backWall.transform.SetParent(emptyWall.transform);
-
+                    GameObject lowerWall = Instantiate(wall);
+                    lowerWall.transform.position = (new Vector3(xPosition, yPosition, zPosition));
+                    lowerWall.transform.SetParent(emptyWall.transform);
+                    if (verticalHall == null || verticalHall != null && !(xPosition > verticalHall.x0 && xPosition < (verticalHall.x0 + verticalHall.width - 1)))
+                    {
+                        GameObject upperWall = Instantiate(wall);
+                        upperWall.transform.position = (new Vector3(xPosition, yPosition, zPosition + width - 1));
+                        upperWall.transform.SetParent(emptyWall.transform);
+                    }
                     yPosition++;
                 }
                 xPosition++;
@@ -409,10 +594,12 @@ public class GenerateBSPMap : MonoBehaviour
                     GameObject leftWall = Instantiate(wall);
                     leftWall.transform.position = (new Vector3(xPosition, yPosition, zPosition));
                     leftWall.transform.SetParent(emptyWall.transform);
-                    GameObject rightWall = Instantiate(wall);
-                    rightWall.transform.position = (new Vector3(xPosition + length - 1, yPosition, zPosition));
-                    rightWall.transform.SetParent(emptyWall.transform);
-
+                    if (horizontalHall == null || horizontalHall != null && !(zPosition > horizontalHall.z0 && zPosition < (horizontalHall.z0 + horizontalHall.width - 1)))
+                    {
+                        GameObject rightWall = Instantiate(wall);
+                        rightWall.transform.position = (new Vector3(xPosition + length - 1, yPosition, zPosition));
+                        rightWall.transform.SetParent(emptyWall.transform);
+                    }
                     yPosition++;
                 }
                 
@@ -428,11 +615,15 @@ public class GenerateBSPMap : MonoBehaviour
         public int z0;
 
         public int length;
-        public const int width = 3;
+        public int width = 4;
         public const int height = 4;
 
-        public bool xDirection;
-        public bool zDirection;
+        public bool isHorizontal;
+
+        GameObject emptyHall;
+
+        public int leftRoomNumber;
+        public int rightRoomNumber;
 
         /// <summary>
         /// constructor without parameters
@@ -444,129 +635,135 @@ public class GenerateBSPMap : MonoBehaviour
 
             length = 0;
 
-            xDirection = true;
-            zDirection = true;
+            isHorizontal = true;
+
+            leftRoomNumber = 0;
+            rightRoomNumber = 0;
+
+            emptyHall = new GameObject("Hall" + leftRoomNumber.ToString() + rightRoomNumber.ToString());
         }
 
         /// <summary>
         /// constructor with parameters
         /// </summary>
-        /// <param name="_x">x coordinate</param>
-        /// <param name="_z">z coordinate</param>
+        /// <param name="_x">x coordinate of lower left corner</param>
+        /// <param name="_z">z coordinate of lower left corner</param>
         /// <param name="l">size of hall</param>
-        /// <param name="hd">bool parameter, showing </param>
-        /// <param name="vd"></param>
-        public Hall(int _x, int _z, int l, bool xd, bool zd)
+        /// <param name="iH">parameter, showing is hall horizontal (true) or vertical (false)</param>
+        /// <param name="leftNum">number of left room, connected with this hall</param>
+        /// <param name="rightNum">number or right room, connected with this hall</param>
+        /// <param name="emptyHalls">main empty GameObject for hierarchy for storing all generated rooms</param>
+        public Hall(int _x, int _z, int l, bool iH, int leftNum, int rightNum, ref GameObject emptyHalls)
         {
             x0 = _x;
             z0 = _z;
 
             length = l;
 
-            xDirection = xd; //тут хуйня какая-то
-            zDirection = zd;
+            isHorizontal = iH;
+
+            leftRoomNumber = leftNum;
+            rightRoomNumber = rightNum;
+
+            emptyHall = new GameObject("Hall" + leftRoomNumber.ToString() + rightRoomNumber.ToString());
+            emptyHall.transform.SetParent(emptyHall.transform);
         }
 
+        /// <summary>
+        /// function for drawing hall
+        /// </summary>
+        /// <param name="floor">floor prefab</param>
+        /// <param name="wall">wall prefab</param>
         public void HallDrawing(GameObject floor, GameObject wall)
         {
             GroundDrawing(floor);
             WallDrawing(wall);
         }
 
-        public void GroundDrawing(GameObject floor)
+        /// <summary>
+        /// function for drawing hall ground and ceiling
+        /// </summary>
+        /// <param name="floor">floor prefab</param>
+        private void GroundDrawing(GameObject floor)
         {
-            int counter;
             int xPosition = x0;
+            int yPosition = -1;
             int zPosition = z0;
 
-            int yPosition = -1;
-
-            if(zDirection)
+            if(isHorizontal)
             {
-                counter = 1;
-            }
-            else 
-            {
-                counter = -1;
-            }
-
-            if(xDirection)
-            {
-                while(xPosition != x0 + length * counter)
+                while(xPosition < x0 + length)
                 {
-                    for(int i = 0; i < width + 2; i++)
+                    for(int i = z0; i < z0 + width; i++)
                     {
-                        GameObject lowerGround = Instantiate(floor);
-                        lowerGround.transform.position = (new Vector3(xPosition, yPosition, zPosition + i * counter));
-                        GameObject upperGround = Instantiate(floor);
-                        upperGround.transform.position = (new Vector3(xPosition, yPosition + height, zPosition + i * counter));
+                        GameObject currentGround = Instantiate(floor);
+                        currentGround.transform.position = new Vector3(xPosition, yPosition, i);
+                        currentGround.transform.SetParent(emptyHall.transform);
+                        //GameObject currentCeiling = Instantiate(floor);
+                        //currentCeiling.transform.position = new Vector3(xPosition, yPosition + height + 1, i);
+                        //currentCeiling.transform.SetParent(emptyHall.transform);
                     }
-
-                    xPosition += counter;
+                    xPosition++;
                 }
             }
             else
             {
-                while(zPosition != z0 + length * counter)
+                while(zPosition < z0 + length)
                 {
-                    for(int i = 0; i < width + 2; i++)
+                    for(int i = x0; i < x0 + width; i++)
                     {
-                        GameObject lowerGround = Instantiate(floor);
-                        lowerGround.transform.position = (new Vector3(xPosition + i * counter, yPosition, zPosition));
-                        GameObject upperGround = Instantiate(floor);
-                        upperGround.transform.position = (new Vector3(xPosition + i * counter, yPosition + height, zPosition));
+                        GameObject currentGround = Instantiate(floor);
+                        currentGround.transform.position = new Vector3(i, yPosition, zPosition);
+                        currentGround.transform.SetParent(emptyHall.transform);
+                        //GameObject currentCeiling = Instantiate(floor);
+                        //currentCeiling.transform.position = new Vector3(i, yPosition + height + 1, zPosition);
+                        //currentCeiling.transform.SetParent(emptyHall.transform);
                     }
-                    
-                    zPosition += counter;
+                    zPosition++;
                 }
             }
         }
 
-        public void WallDrawing(GameObject wall)
+        /// <summary>
+        /// function for drawing hall walls
+        /// </summary>
+        /// <param name="wall">wall prefab</param>
+        private void WallDrawing(GameObject wall)
         {
-            int counter;
             int xPosition = x0;
+            int yPosition = 0;
             int zPosition = z0;
 
-            int yPosition = -1;
-
-            if(zDirection)
+            if(isHorizontal)
             {
-                counter = 1;
-            }
-            else 
-            {
-                counter = -1;
-            }
-
-            if(xDirection)
-            {
-                while(xPosition != x0 + length * counter)
+                while(xPosition < x0 + length)
                 {
-                    for(int i = 1; i < height; i++)
+                    for(int i = yPosition; i < yPosition + height; i++)
                     {
-                        GameObject leftWall = Instantiate(wall);
-                        leftWall.transform.position = (new Vector3(xPosition, yPosition + i, zPosition));
-                        GameObject rightWall = Instantiate(wall);
-                        rightWall.transform.position = (new Vector3(xPosition, yPosition + i, zPosition + counter * (width + 1)));
+                        GameObject lowerWall = Instantiate(wall);
+                        lowerWall.transform.position = (new Vector3(xPosition, i, zPosition));
+                        lowerWall.transform.SetParent(emptyHall.transform);
+                        GameObject upperWall = Instantiate(wall);
+                        upperWall.transform.position = (new Vector3(xPosition, i, zPosition + width - 1));
+                        upperWall.transform.SetParent(emptyHall.transform);
                     }
-                    
-                    xPosition += counter;
+                    xPosition++;
                 }
             }
             else
             {
-                while(zPosition != z0 + length * counter) 
+                while(zPosition < z0 + length)
                 {
-                    for(int i = 1; i < height; i++)
+                    for(int i = yPosition; i < yPosition + height; i++)
                     {
-                        GameObject leftHall = Instantiate(wall);
-                        leftHall.transform.position = (new Vector3(xPosition, yPosition + i, zPosition));
+                        GameObject leftWall = Instantiate(wall);
+                        leftWall.transform.position = (new Vector3(xPosition, i, zPosition));
+                        leftWall.transform.SetParent(emptyHall.transform);
                         GameObject rightWall = Instantiate(wall);
-                        rightWall.transform.position = (new Vector3(xPosition + counter * (width + 1), yPosition + i, zPosition));
+                        rightWall.transform.position = (new Vector3(xPosition + width - 1, i, zPosition));
+                        rightWall.transform.SetParent(emptyHall.transform);
                     }
-
-                    zPosition += counter;
+                    zPosition++;
                 }
             }
         }
