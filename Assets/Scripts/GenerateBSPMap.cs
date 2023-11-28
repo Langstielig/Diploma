@@ -38,7 +38,7 @@ public class GenerateBSPMap : MonoBehaviour
         //Room room = new Room(0, 0, 11, 8, 1, ref emptyRooms, hall1, hall2);
         //room.RoomDrawing(ground1, wall1);
 
-        Leaf leaf = new Leaf(0, 0, 10, 21);
+        Leaf leaf = new Leaf(0, 0, 21, 10);
         leaf.Split();
         leaf.GenerateRooms(border, ref countOfRooms, ref emptyRooms, ref emptyHalls, ref emptyLeafs);
         leaf.GenerateHalls(ref emptyHalls);
@@ -245,8 +245,8 @@ public class GenerateBSPMap : MonoBehaviour
                 LeafDrawing(border, ref roomNumber, ref emptyLeafs);
 
                 Debug.Log("create room for leaf: " + x0.ToString() + ", " + z0.ToString() + ", " + width.ToString() + ", " + length.ToString());
-                int roomWidth = Random.Range(4, width - 2);
-                int roomLength = Random.Range(4, length - 2);
+                int roomWidth = Random.Range(5, width - 2);
+                int roomLength = Random.Range(5, length - 2);
                 int roomPosX = Random.Range(1, length - roomLength - 1) + x0;
                 int roomPosZ = Random.Range(1, width - roomWidth - 1) + z0;
 
@@ -267,6 +267,7 @@ public class GenerateBSPMap : MonoBehaviour
                 int xPosition;
                 int zPosition;
                 int lengthOfHall;
+                bool isHorizontal;
                 if (isHorizontalSplitting)
                 {
                     if (leftChild.room.x0 > rightChild.room.x0)
@@ -275,13 +276,14 @@ public class GenerateBSPMap : MonoBehaviour
                         min = rightChild.room.x0;
 
                     if ((leftChild.room.x0 + leftChild.room.length) < (rightChild.room.x0 + rightChild.room.length))
-                        max = leftChild.x0 + leftChild.room.length - 1;
+                        max = leftChild.x0 + leftChild.room.length - 3;
                     else
-                        max = rightChild.room.x0 + rightChild.room.length - 1;
+                        max = rightChild.room.x0 + rightChild.room.length - 3;
 
-                    xPosition = Random.Range(min, max); //тут скорее всего нужно max + 1
+                    xPosition = Random.Range(min, max);
                     zPosition = leftChild.room.z0 + leftChild.room.width;
                     lengthOfHall = rightChild.room.z0 - zPosition;
+                    isHorizontal = false;
                 }
                 else
                 {
@@ -291,16 +293,19 @@ public class GenerateBSPMap : MonoBehaviour
                         min = rightChild.room.z0;
 
                     if ((leftChild.room.z0 + leftChild.room.width) < (rightChild.room.z0 + rightChild.room.width))
-                        max = leftChild.room.z0 + leftChild.room.width - 1;
+                        max = leftChild.room.z0 + leftChild.room.width - 3;
                     else
-                        max = rightChild.room.z0 + rightChild.room.width - 1;
+                        max = rightChild.room.z0 + rightChild.room.width - 3;
 
+                    //может добавить проверку max < min
                     xPosition = leftChild.room.x0 + leftChild.room.length;
-                    zPosition = Random.Range(min, max); // тут тоже max + 1
+                    zPosition = Random.Range(min, max);
                     lengthOfHall = rightChild.room.x0 - xPosition;
+                    isHorizontal = true;
                 }
-                Hall newHall = new Hall(xPosition, zPosition, lengthOfHall, false, leftChild.room.roomNumber, rightChild.room.roomNumber, ref emptyHalls);
-                leftChild.room.AddHall(newHall);
+                Hall newHall = new Hall(xPosition, zPosition, lengthOfHall, isHorizontal, leftChild.room.roomNumber, rightChild.room.roomNumber, ref emptyHalls);
+                leftChild.room.AddRealHall(newHall);
+                rightChild.room.AddImaginaryHall(newHall);
             }
             else
             {
@@ -382,8 +387,10 @@ public class GenerateBSPMap : MonoBehaviour
 
         public int roomNumber;
 
-        Hall horizontalHall;
-        Hall verticalHall;
+        Hall rightHall;
+        Hall upperHall;
+        Hall leftHall;
+        Hall lowerHall;
 
         /// <summary>
         /// constructor without parameters
@@ -400,8 +407,10 @@ public class GenerateBSPMap : MonoBehaviour
 
             emptyRoom = new GameObject("Room" + roomNumber.ToString());
 
-            horizontalHall = null;
-            verticalHall = null;
+            rightHall = null;
+            upperHall = null;
+            leftHall = null;
+            lowerHall = null;
         }
 
         /// <summary>
@@ -426,6 +435,11 @@ public class GenerateBSPMap : MonoBehaviour
 
             emptyRoom = new GameObject("Room" + roomNumber.ToString());
             emptyRoom.transform.SetParent(emptyRooms.transform);
+
+            rightHall = null;
+            upperHall = null;
+            leftHall = null;
+            lowerHall = null;
         }
 
         /// <summary>
@@ -437,7 +451,7 @@ public class GenerateBSPMap : MonoBehaviour
         /// <param name="w">width (size on z coordinate)</param>
         /// <param name="num">number of room</param>
         /// <param name="emptyRooms">main empty GameObject for hierarchy for storing all generated rooms</param>
-        /// <param name="h">horizontal or vertical hall</param>
+        /// <param name="h">right or upper hall</param>
         public Room(int _x, int _z, int l, int w, int num, ref GameObject emptyRooms, Hall h)
         {
             x0 = _x;
@@ -454,14 +468,17 @@ public class GenerateBSPMap : MonoBehaviour
 
             if (h.isHorizontal)
             {
-                horizontalHall = h;
-                verticalHall = null;
+                rightHall = h;
+                upperHall = null;
             }
             else
             {
-                verticalHall = h;
-                horizontalHall = null;
+                upperHall = h;
+                rightHall = null;
             }
+
+            leftHall = null;
+            lowerHall = null;
         }
 
         /// <summary>
@@ -473,9 +490,9 @@ public class GenerateBSPMap : MonoBehaviour
         /// <param name="w">width (size on z coordinate)</param>
         /// <param name="num">number of room</param>
         /// <param name="emptyRooms">main empty GameObject for hierarchy for storing all generated rooms</param>
-        /// <param name="horizontal">horizontal hall</param>
-        /// <param name="vertical">vertical hall</param>
-        public Room(int _x, int _z, int l, int w, int num, ref GameObject emptyRooms, Hall horizontal, Hall vertical)
+        /// <param name="right">horizontal hall</param>
+        /// <param name="upper">vertical hall</param>
+        public Room(int _x, int _z, int l, int w, int num, ref GameObject emptyRooms, Hall right, Hall upper)
         {
             x0 = _x;
             z0 = _z;
@@ -489,16 +506,34 @@ public class GenerateBSPMap : MonoBehaviour
             emptyRoom = new GameObject("Room" + roomNumber.ToString());
             emptyRoom.transform.SetParent(emptyRooms.transform);
 
-            horizontalHall = horizontal;
-            verticalHall = vertical;
+            rightHall = right;
+            upperHall = upper;
+            leftHall = null;
+            lowerHall = null;
         }
 
-        public void AddHall(Hall hall)
+        /// <summary>
+        /// function for adding hall, that will be drawn
+        /// </summary>
+        /// <param name="hall">right or upper hall, that will be drawn</param>
+        public void AddRealHall(Hall hall)
         {
             if (hall.isHorizontal)
-                horizontalHall = hall;
+                rightHall = hall;
             else
-                verticalHall = hall;
+                upperHall = hall;
+        }
+
+        /// <summary>
+        /// function for adding hall, which only be taken into account when drawing the passage
+        /// </summary>
+        /// <param name="hall">left or lower hall, that won't be drawn</param>
+        public void AddImaginaryHall(Hall hall)
+        {
+            if (hall.isHorizontal)
+                leftHall = hall;
+            else
+                lowerHall = hall;
         }
 
         /// <summary>
@@ -511,11 +546,11 @@ public class GenerateBSPMap : MonoBehaviour
             FloorDrawing(floor);
             WallDrawing(wall);
 
-            if(horizontalHall != null)
-                horizontalHall.HallDrawing(floor, wall);
+            if(rightHall != null)
+                rightHall.HallDrawing(floor, wall);
 
-            if(verticalHall != null)
-                verticalHall.HallDrawing(floor, wall);
+            if(upperHall != null)
+                upperHall.HallDrawing(floor, wall);
         }
 
         /// <summary>
@@ -568,15 +603,24 @@ public class GenerateBSPMap : MonoBehaviour
             {
                 while(yPosition < height)
                 {
-                    GameObject lowerWall = Instantiate(wall);
-                    lowerWall.transform.position = (new Vector3(xPosition, yPosition, zPosition));
-                    lowerWall.transform.SetParent(emptyWall.transform);
-                    if (verticalHall == null || verticalHall != null && !(xPosition > verticalHall.x0 && xPosition < (verticalHall.x0 + verticalHall.width - 1)))
+                    //отрисовка нижней стены
+                    if(lowerHall == null || lowerHall != null && 
+                       !(xPosition > lowerHall.x0 && xPosition < (lowerHall.x0 + lowerHall.width - 1)))
+                    {
+                        GameObject lowerWall = Instantiate(wall);
+                        lowerWall.transform.position = (new Vector3(xPosition, yPosition, zPosition));
+                        lowerWall.transform.SetParent(emptyWall.transform);
+                    }
+
+                    //отрисовка верхней стены
+                    if (upperHall == null || upperHall != null && 
+                        !(xPosition > upperHall.x0 && xPosition < (upperHall.x0 + upperHall.width - 1)))
                     {
                         GameObject upperWall = Instantiate(wall);
                         upperWall.transform.position = (new Vector3(xPosition, yPosition, zPosition + width - 1));
                         upperWall.transform.SetParent(emptyWall.transform);
                     }
+
                     yPosition++;
                 }
                 xPosition++;
@@ -591,15 +635,24 @@ public class GenerateBSPMap : MonoBehaviour
             {
                 while(yPosition < height)
                 {
-                    GameObject leftWall = Instantiate(wall);
-                    leftWall.transform.position = (new Vector3(xPosition, yPosition, zPosition));
-                    leftWall.transform.SetParent(emptyWall.transform);
-                    if (horizontalHall == null || horizontalHall != null && !(zPosition > horizontalHall.z0 && zPosition < (horizontalHall.z0 + horizontalHall.width - 1)))
+                    //отрисовка левой стены
+                    if(leftHall == null || leftHall != null &&
+                        !(zPosition > leftHall.z0 && zPosition < (leftHall.z0 + leftHall.width - 1)))
+                    {
+                        GameObject leftWall = Instantiate(wall);
+                        leftWall.transform.position = (new Vector3(xPosition, yPosition, zPosition));
+                        leftWall.transform.SetParent(emptyWall.transform);
+                    }
+
+                    //отрисовка правой стены
+                    if (rightHall == null || rightHall != null && 
+                        !(zPosition > rightHall.z0 && zPosition < (rightHall.z0 + rightHall.width - 1)))
                     {
                         GameObject rightWall = Instantiate(wall);
                         rightWall.transform.position = (new Vector3(xPosition + length - 1, yPosition, zPosition));
                         rightWall.transform.SetParent(emptyWall.transform);
                     }
+
                     yPosition++;
                 }
                 
