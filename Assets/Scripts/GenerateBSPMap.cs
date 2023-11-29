@@ -38,10 +38,27 @@ public class GenerateBSPMap : MonoBehaviour
         //Room room = new Room(0, 0, 11, 8, 1, ref emptyRooms, hall1, hall2);
         //room.RoomDrawing(ground1, wall1);
 
-        Leaf leaf = new Leaf(0, 0, 21, 10);
+        Leaf leaf = new Leaf(0, 0, 38, 38);
         leaf.Split();
         leaf.GenerateRooms(border, ref countOfRooms, ref emptyRooms, ref emptyHalls, ref emptyLeafs);
-        leaf.GenerateHalls(ref emptyHalls);
+        leaf.GenerateHallsBetweenSiblings(ref emptyHalls);
+
+        Leaf[] leafsWithoutHalls = new Leaf[countOfRooms - 1];
+        for (int i = 0; i < countOfRooms - 1; i++)
+            leafsWithoutHalls[i] = null;
+
+        leaf.FindLeafsWithoutHalls(ref leafsWithoutHalls);
+        int index = 0;
+        while (leafsWithoutHalls[index] != null)
+        {
+            Leaf newLeaf = leaf.FindCloseLeaf(leafsWithoutHalls[index]);
+            if(newLeaf != null)
+            {
+                leaf.GenerateRemainingHall(leafsWithoutHalls[index], newLeaf, ref emptyHalls);
+            }
+            index++;
+        }
+
         leaf.DrawMap(ground1, wall1);
 
         //Leaf leaf = new Leaf(0, 0, 50, 50);
@@ -142,7 +159,7 @@ public class GenerateBSPMap : MonoBehaviour
         /// </summary>
         public void Split()
         {
-            Debug.Log("Split leaf: " + x0.ToString() + ", " + z0.ToString() + ", " + width.ToString() + ", " + length.ToString());
+            Debug.Log("Split leaf: " + x0.ToString() + ", " + z0.ToString() + ", " + length.ToString() + ", " + width.ToString());
             if(leftChild == null && rightChild == null)
             {
                 bool horizontalSplitting;
@@ -160,6 +177,7 @@ public class GenerateBSPMap : MonoBehaviour
                 else
                 {
                     horizontalSplitting = RandomBoolean();
+                    //horizontalSplitting = false;
                     Debug.Log("random");
                 }
                 Debug.Log("HorizontalSplitting: " + horizontalSplitting);
@@ -258,7 +276,7 @@ public class GenerateBSPMap : MonoBehaviour
             }
         }
 
-        public void GenerateHalls(ref GameObject emptyHalls)
+        public void GenerateHallsBetweenSiblings(ref GameObject emptyHalls)
         {
             if(leftChild != null && leftChild.room != null && rightChild != null && rightChild.room != null)
             {
@@ -310,9 +328,150 @@ public class GenerateBSPMap : MonoBehaviour
             else
             {
                 if (leftChild != null)
-                    leftChild.GenerateHalls(ref emptyHalls);
+                    leftChild.GenerateHallsBetweenSiblings(ref emptyHalls);
                 if (rightChild != null)
-                    rightChild.GenerateHalls(ref emptyHalls);
+                    rightChild.GenerateHallsBetweenSiblings(ref emptyHalls);
+            }
+        }
+
+        public void FindLeafsWithoutHalls(ref Leaf[] leafsWithoutHalls)
+        {
+            if (room != null && room.upperHall == null && room.rightHall == null) 
+            {
+                int index = 0;
+                while (leafsWithoutHalls[index] != null) index++;
+                leafsWithoutHalls[index] = this;
+            }
+            else
+            {
+                if(leftChild != null)
+                    leftChild.FindLeafsWithoutHalls(ref leafsWithoutHalls);
+                if (rightChild != null)
+                    rightChild.FindLeafsWithoutHalls(ref leafsWithoutHalls);
+            }
+        }
+
+        public Leaf FindCloseLeaf(Leaf currentLeaf)
+        {
+            int middleOfRoomX = (2 * currentLeaf.x0 + currentLeaf.length) / 2;
+            int middleOfRoomZ = (2 * currentLeaf.z0 + currentLeaf.width) / 2;
+            if(room != null && 
+               !((room.upperHall != null && room.upperHall == currentLeaf.room.lowerHall) || 
+               (room.rightHall != null && room.rightHall == currentLeaf.room.leftHall)) &&
+               //room.upperHall == null && room.rightHall == null &&
+               (((currentLeaf.x0 + currentLeaf.length) == x0 && middleOfRoomZ > z0 && middleOfRoomZ < (z0 + width)) || //соединить условия на коридоры с условиями на координаты
+               ((currentLeaf.z0 + currentLeaf.width) == z0 && middleOfRoomX > x0 && middleOfRoomX < (x0 + length))))
+            {
+                return this;
+            }
+            else
+            {
+                Leaf leftLeaf = null;
+                Leaf rightLeaf = null;
+                if (leftChild != null)
+                {
+                    leftLeaf = leftChild.FindCloseLeaf(currentLeaf);
+                }
+                if (rightChild != null)
+                {
+                    rightLeaf = rightChild.FindCloseLeaf(currentLeaf);
+                }
+                
+                //if (rightLeaf != null)
+                //    return rightLeaf;
+                //else if (leftLeaf != null)
+                //    return leftLeaf;
+                //else
+                //    return null;
+
+                if (leftLeaf == null && rightLeaf == null)
+                    return null;
+                else if (leftLeaf == null)
+                    return rightLeaf;
+                else if (rightLeaf == null)
+                    return leftLeaf;
+                else if (RandomBoolean())
+                    return rightLeaf;
+                else
+                    return leftLeaf;
+            }
+        }
+
+        public void GenerateRemainingHall(Leaf leftLeaf, Leaf rightLeaf, ref GameObject emptyHalls)
+        {
+            if(leftLeaf.room != null && rightLeaf.room != null)
+            {
+                int min;
+                int max;
+                int xPosition;
+                int zPosition;
+                int lengthOfHall;
+                bool isHorizontal;
+                if ((leftLeaf.x0 + leftLeaf.length) == rightLeaf.x0)
+                {
+                    if (leftLeaf.room.z0 > rightLeaf.room.z0)
+                        min = leftLeaf.room.z0;
+                    else
+                        min = rightLeaf.room.z0;
+
+                    if ((leftLeaf.room.z0 + leftLeaf.room.width) < (rightLeaf.room.z0 + rightLeaf.room.width))
+                        max = leftLeaf.room.z0 + leftLeaf.room.width - 3;
+                    else
+                        max = rightLeaf.room.z0 + rightLeaf.room.width - 3;
+
+                    //может добавить проверку max < min
+                    xPosition = leftLeaf.room.x0 + leftLeaf.room.length;
+                    zPosition = Random.Range(min, max);
+                    lengthOfHall = rightLeaf.room.x0 - xPosition;
+                    isHorizontal = true;
+                }
+                else /*if ((leftLeaf.z0 + leftLeaf.width) == rightLeaf.z0)*/
+                {
+                    if (leftLeaf.room.x0 > rightLeaf.room.x0)
+                        min = leftLeaf.room.x0;
+                    else
+                        min = rightLeaf.room.x0;
+
+                    if ((leftLeaf.room.x0 + leftLeaf.room.length) < (rightLeaf.room.x0 + rightLeaf.room.length))
+                        max = leftLeaf.x0 + leftLeaf.room.length - 3;
+                    else
+                        max = rightLeaf.room.x0 + rightLeaf.room.length - 3;
+
+                    xPosition = Random.Range(min, max);
+                    zPosition = leftLeaf.room.z0 + leftLeaf.room.width;
+                    lengthOfHall = rightLeaf.room.z0 - zPosition;
+                    isHorizontal = false;
+                }
+                Hall newHall = new Hall(xPosition, zPosition, lengthOfHall, isHorizontal, leftLeaf.room.roomNumber, rightLeaf.room.roomNumber, ref emptyHalls);
+                leftLeaf.room.AddRealHall(newHall);
+                rightLeaf.room.AddImaginaryHall(newHall);
+            }
+        }
+
+        public Room getRoom()
+        {
+            if (room != null)
+                return room;
+            else
+            {
+                Room leftRoom = null;
+                Room rightRoom = null;
+
+                if(leftChild != null)
+                    leftRoom = leftChild.getRoom();
+                if(rightChild != null)
+                    rightRoom = rightChild.getRoom();
+
+                if (leftRoom == null && rightRoom == null)
+                    return null;
+                else if (rightRoom == null)
+                    return leftRoom;
+                else if (leftRoom == null)
+                    return rightRoom;
+                else if(RandomBoolean())
+                    return leftRoom;
+                else
+                    return rightRoom;
             }
         }
 
@@ -387,10 +546,10 @@ public class GenerateBSPMap : MonoBehaviour
 
         public int roomNumber;
 
-        Hall rightHall;
-        Hall upperHall;
-        Hall leftHall;
-        Hall lowerHall;
+        public Hall rightHall;
+        public Hall upperHall;
+        public Hall leftHall;
+        public Hall lowerHall;
 
         /// <summary>
         /// constructor without parameters
@@ -719,7 +878,7 @@ public class GenerateBSPMap : MonoBehaviour
             rightRoomNumber = rightNum;
 
             emptyHall = new GameObject("Hall" + leftRoomNumber.ToString() + rightRoomNumber.ToString());
-            emptyHall.transform.SetParent(emptyHall.transform);
+            emptyHall.transform.SetParent(emptyHalls.transform);
         }
 
         /// <summary>
