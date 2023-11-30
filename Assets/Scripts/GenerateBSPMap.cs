@@ -38,7 +38,7 @@ public class GenerateBSPMap : MonoBehaviour
         //Room room = new Room(0, 0, 11, 8, 1, ref emptyRooms, hall1, hall2);
         //room.RoomDrawing(ground1, wall1);
 
-        Leaf leaf = new Leaf(0, 0, 38, 38);
+        Leaf leaf = new Leaf(0, 0, 45, 45);
         leaf.Split();
         leaf.GenerateRooms(border, ref countOfRooms, ref emptyRooms, ref emptyHalls, ref emptyLeafs);
         leaf.GenerateHallsBetweenSiblings(ref emptyHalls);
@@ -298,6 +298,20 @@ public class GenerateBSPMap : MonoBehaviour
                     else
                         max = rightChild.room.x0 + rightChild.room.length - 3;
 
+                    if(max <= min)
+                    {
+                        if(leftChild.room.x0 < rightChild.room.x0)
+                        {
+                            leftChild.room.length += (min - max + 1);
+                            max = leftChild.x0 + leftChild.room.length - 3;
+                        }
+                        else
+                        {
+                            rightChild.room.length += (min - max + 1);
+                            max = rightChild.room.x0 + rightChild.room.length - 3;
+                        }
+                    }
+
                     xPosition = Random.Range(min, max);
                     zPosition = leftChild.room.z0 + leftChild.room.width;
                     lengthOfHall = rightChild.room.z0 - zPosition;
@@ -315,7 +329,20 @@ public class GenerateBSPMap : MonoBehaviour
                     else
                         max = rightChild.room.z0 + rightChild.room.width - 3;
 
-                    //может добавить проверку max < min
+                    if(max <= min)
+                    {
+                        if(leftChild.room.z0  < rightChild.room.z0)
+                        {
+                            leftChild.room.width += (min - max + 1);
+                            max = leftChild.room.z0 + leftChild.room.width - 3;
+                        }
+                        else
+                        {
+                            rightChild.room.width += (min - max + 1);
+                            max = rightChild.room.z0 + rightChild.room.width - 3;
+                        }
+                    }
+
                     xPosition = leftChild.room.x0 + leftChild.room.length;
                     zPosition = Random.Range(min, max);
                     lengthOfHall = rightChild.room.x0 - xPosition;
@@ -419,7 +446,20 @@ public class GenerateBSPMap : MonoBehaviour
                     else
                         max = rightLeaf.room.z0 + rightLeaf.room.width - 3;
 
-                    //может добавить проверку max < min
+                    if (max <= min)
+                    {
+                        if (leftLeaf.room.z0 < rightLeaf.room.z0)
+                        {
+                            leftLeaf.room.width += (min - max + 1);
+                            max = leftLeaf.room.z0 + leftLeaf.room.width - 3;
+                        }
+                        else
+                        {
+                            rightLeaf.room.width += (min - max + 1);
+                            max = rightLeaf.room.z0 + rightLeaf.room.width - 3;
+                        }
+                    }
+
                     xPosition = leftLeaf.room.x0 + leftLeaf.room.length;
                     zPosition = Random.Range(min, max);
                     lengthOfHall = rightLeaf.room.x0 - xPosition;
@@ -436,6 +476,20 @@ public class GenerateBSPMap : MonoBehaviour
                         max = leftLeaf.x0 + leftLeaf.room.length - 3;
                     else
                         max = rightLeaf.room.x0 + rightLeaf.room.length - 3;
+
+                    if (max <= min)
+                    {
+                        if (leftLeaf.room.x0 < rightLeaf.room.x0)
+                        {
+                            leftLeaf.room.length += (min - max + 1);
+                            max = leftLeaf.x0 + leftLeaf.room.length - 3;
+                        }
+                        else
+                        {
+                            rightLeaf.room.length += (min - max + 1);
+                            max = rightLeaf.room.x0 + rightLeaf.room.length - 3;
+                        }
+                    }
 
                     xPosition = Random.Range(min, max);
                     zPosition = leftLeaf.room.z0 + leftLeaf.room.width;
